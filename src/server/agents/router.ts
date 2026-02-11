@@ -50,10 +50,7 @@ Classify this request and suggest a tool plan.`;
   try {
     const result = await generateObject({
       model: google(
-        process.env.GOOGLE_GENERATIVE_AI_MODEL || "gemini-2.0-flash-exp",
-        {
-          apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
-        },
+        process.env.GOOGLE_GENERATIVE_AI_MODEL || "gemini-2.5-flash",
       ),
       schema: routerDecisionSchema,
       system: systemPrompt,

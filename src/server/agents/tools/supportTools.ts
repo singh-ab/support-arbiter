@@ -4,7 +4,7 @@ import type { Tool } from "@/server/agents/types";
 import { messageRepo } from "@/server/repos/messageRepo";
 
 const queryHistorySchema = z.object({
-  limit: z.number().min(1).max(50).default(10),
+  limit: z.number().min(1).max(50).optional(),
 });
 
 export const queryConversationHistory: Tool<
@@ -16,9 +16,10 @@ export const queryConversationHistory: Tool<
     "Retrieves recent conversation history for context and troubleshooting.",
   schema: queryHistorySchema,
   execute: async (input, context) => {
+    const limit = input.limit ?? 10;
     const messages = await messageRepo.getRecentByConversation(
       context.conversationId,
-      input.limit,
+      limit,
     );
     return messages.map(
       (m: { role: string; content: string; createdAt: Date }) => ({

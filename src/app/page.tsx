@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 
 type Message = {
   id: string;
@@ -27,21 +27,7 @@ export default function ChatPage() {
   const [userId] = useState("demo-user");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    loadConversations();
-  }, []);
-
-  useEffect(() => {
-    if (currentConversationId) {
-      loadConversation(currentConversationId);
-    }
-  }, [currentConversationId]);
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
-  const loadConversations = async () => {
+  const loadConversations = useCallback(async () => {
     try {
       const res = await fetch(`/api/chat/conversations?userId=${userId}`);
       const data = await res.json();
@@ -49,9 +35,9 @@ export default function ChatPage() {
     } catch (error) {
       console.error("Failed to load conversations:", error);
     }
-  };
+  }, [userId]);
 
-  const loadConversation = async (id: string) => {
+  const loadConversation = useCallback(async (id: string) => {
     try {
       const res = await fetch(`/api/chat/conversations/${id}`);
       const data = await res.json();
@@ -61,7 +47,21 @@ export default function ChatPage() {
     } catch (error) {
       console.error("Failed to load conversation:", error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadConversations();
+  }, [loadConversations]);
+
+  useEffect(() => {
+    if (currentConversationId) {
+      loadConversation(currentConversationId);
+    }
+  }, [currentConversationId, loadConversation]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   const sendMessage = async () => {
     if (!input.trim() || loading) return;
@@ -210,6 +210,13 @@ export default function ChatPage() {
                   </div>
                 </div>
               ))}
+              {loading && (
+                <div className="flex justify-start">
+                  <div className="max-w-[80%] px-4 py-3 rounded-lg bg-zinc-800 text-zinc-400">
+                    <div className="text-sm italic">Thinking...</div>
+                  </div>
+                </div>
+              )}
               <div ref={messagesEndRef} />
             </div>
           )}
