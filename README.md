@@ -1,36 +1,98 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Support Arbiter - Multi Agent Customer Support
 
-## Getting Started
+Next.js app with a Hono API and a simple multi agent AI system.
 
-First, run the development server:
+## What it does
+
+1. Stores users, conversations, messages, orders, deliveries, invoices, payments, refunds
+2. Routes each incoming message to a specialized agent using an LLM router
+3. Enforces tools first behavior in sub agents by calling DB backed tools before generating text
+
+## Tech
+
+1. Next.js App Router UI
+2. Hono API mounted at `/api/*`
+3. Prisma with PostgreSQL
+4. Vercel AI SDK with Google Gemini via `@ai-sdk/google`
+
+## Quick start
+
+1. Install
+
+```bash
+npm install
+```
+
+1. Create `.env` from `.env.example` and set values
+
+Required
+
+```env
+DATABASE_URL="postgresql://..."
+GOOGLE_GENERATIVE_AI_API_KEY="..."
+```
+
+Optional
+
+```env
+GOOGLE_GENERATIVE_AI_MODEL="gemini-2.5-flash"
+```
+
+1. Database
+
+```bash
+npm run prisma:generate
+npm run prisma:migrate
+npm run prisma:seed
+```
+
+1. Run
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## API
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. `GET /api/health`
+2. `POST /api/chat/messages`
+3. `GET /api/chat/conversations?userId=demo-user`
+4. `GET /api/chat/conversations/:id`
+5. `DELETE /api/chat/conversations/:id`
+6. `GET /api/agents`
+7. `GET /api/agents/:type/capabilities`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Seeded examples
 
-## Learn More
+The seed creates a demo user and sample data.
 
-To learn more about Next.js, take a look at the following resources:
+Demo user
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. Email `demo@acme.com`
+2. UI uses `userId=demo-user` and the server maps it to the seeded demo user id
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Orders
 
-## Deploy on Vercel
+1. Order number `A10001` status `SHIPPED` carrier `UPS` tracking `1Z999AA10123456784`
+2. Order number `A10002` status `PROCESSING` carrier `USPS` tracking `94001118992238569210`
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Invoices
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. Invoice number `INV-10001` status `PAID` total `129.99 USD`
+2. Invoice number `INV-10002` status `OPEN` total `49.99 USD`
+
+Refunds
+
+1. Payment for `INV-10001` has a refund row with status `NONE`
+
+## Test queries
+
+Use these in the UI after seeding.
+
+1. `Where is my order A10001?`
+2. `Check delivery status for A10002`
+3. `Can I get invoice INV-10001?`
+4. `Do I have a refund for INV-10001?`
+5. `How do I reset my password?`
+
+If you see quota errors from Gemini, verify `GOOGLE_GENERATIVE_AI_API_KEY` and your Google project quotas.
