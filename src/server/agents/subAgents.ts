@@ -1,5 +1,5 @@
 import { generateText } from "ai";
-import { openai } from "@ai-sdk/openai";
+import { deepseek } from "@ai-sdk/deepseek";
 
 import type {
   AgentContext,
@@ -66,7 +66,14 @@ Provide a helpful response.`;
 
   try {
     const result = await generateText({
-      model: openai(process.env.OPENAI_MODEL || "gpt-4o-mini"),
+      model: deepseek(
+        process.env.OPENAI_MODEL ||
+          process.env.DEEPSEEK_MODEL ||
+          "deepseek-chat",
+        {
+          apiKey: process.env.DEEPSEEK_API_KEY || process.env.OPENAI_API_KEY,
+        },
+      ),
       system: systemPrompt,
       prompt: userPrompt,
       temperature: 0.7,
@@ -120,7 +127,14 @@ Provide a helpful response about the order.`;
 
   try {
     const result = await generateText({
-      model: openai(process.env.OPENAI_MODEL || "gpt-4o-mini"),
+      model: deepseek(
+        process.env.OPENAI_MODEL ||
+          process.env.DEEPSEEK_MODEL ||
+          "deepseek-chat",
+        {
+          apiKey: process.env.DEEPSEEK_API_KEY || process.env.OPENAI_API_KEY,
+        },
+      ),
       system: systemPrompt,
       prompt: userPrompt,
       temperature: 0.5,
@@ -174,7 +188,14 @@ Provide a helpful response about billing.`;
 
   try {
     const result = await generateText({
-      model: openai(process.env.OPENAI_MODEL || "gpt-4o-mini"),
+      model: deepseek(
+        process.env.OPENAI_MODEL ||
+          process.env.DEEPSEEK_MODEL ||
+          "deepseek-chat",
+        {
+          apiKey: process.env.DEEPSEEK_API_KEY || process.env.OPENAI_API_KEY,
+        },
+      ),
       system: systemPrompt,
       prompt: userPrompt,
       temperature: 0.5,

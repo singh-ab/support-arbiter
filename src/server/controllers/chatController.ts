@@ -5,8 +5,9 @@ import { AppError } from "@/server/errors/appError";
 import { chatService } from "@/server/services/chatService";
 
 const postMessageBodySchema = z.object({
-  conversationId: z.string().uuid().optional(),
-  userId: z.string().uuid().optional(),
+  conversationId: z.string().uuid().nullable().optional(),
+  // userId is an arbitrary string (e.g. "demo-user"), not necessarily a UUID
+  userId: z.string().min(1).optional(),
   message: z.string().min(1),
 });
 
@@ -15,6 +16,7 @@ export const chatController = {
     const body = await c.req.json().catch(() => null);
     const parsed = postMessageBodySchema.safeParse(body);
     if (!parsed.success) {
+      console.error("Request body validation failed:", parsed.error.flatten());
       throw new AppError("BAD_REQUEST", "Invalid request body", 400);
     }
 

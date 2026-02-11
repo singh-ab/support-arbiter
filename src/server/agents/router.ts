@@ -1,5 +1,5 @@
 import { generateObject } from "ai";
-import { openai } from "@ai-sdk/openai";
+import { deepseek } from "@ai-sdk/deepseek";
 import { z } from "zod";
 
 import type { AgentContext, RouterDecision } from "@/server/agents/types";
@@ -49,7 +49,12 @@ Classify this request and suggest a tool plan.`;
 
   try {
     const result = await generateObject({
-      model: openai(process.env.OPENAI_MODEL || "gpt-4o-mini"),
+      model: deepseek(
+        process.env.OPENAI_MODEL || process.env.DEEPSEEK_MODEL || "deepseek-chat",
+        {
+          apiKey: process.env.DEEPSEEK_API_KEY || process.env.OPENAI_API_KEY,
+        },
+      ),
       schema: routerDecisionSchema,
       system: systemPrompt,
       prompt: userPrompt,
