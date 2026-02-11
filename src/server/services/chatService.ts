@@ -11,7 +11,7 @@ import { messageRepo } from "@/server/repos/messageRepo";
 import { userRepo } from "@/server/repos/userRepo";
 
 export type IncomingMessageInput = {
-  conversationId?: string;
+  conversationId?: string | null;
   userId?: string;
   message: string;
 };

@@ -11,14 +11,13 @@ import { billingTools } from "@/server/agents/tools/billingTools";
 import { orderTools } from "@/server/agents/tools/orderTools";
 import { supportTools } from "@/server/agents/tools/supportTools";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function executeToolCall(
-  tool: Tool<any, any>,
+async function executeToolCall<TInput, TOutput>(
+  tool: Tool<TInput, TOutput>,
   input: unknown,
   context: AgentContext,
 ): Promise<ToolCall> {
   try {
-    const parsed = tool.schema.parse(input);
+    const parsed = tool.schema.parse(input) as TInput;
     const result = await tool.execute(parsed, context);
     return {
       toolName: tool.name,
@@ -67,10 +66,7 @@ Provide a helpful response.`;
   try {
     const result = await generateText({
       model: google(
-        process.env.GOOGLE_GENERATIVE_AI_MODEL || "gemini-2.0-flash-exp",
-        {
-          apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
-        },
+        process.env.GOOGLE_GENERATIVE_AI_MODEL || "gemini-2.5-flash",
       ),
       system: systemPrompt,
       prompt: userPrompt,
@@ -102,7 +98,9 @@ export async function runOrderAgent(
 
   // Execute tools first
   for (const plan of toolPlan) {
-    const tool = orderTools.find((t) => t.name === plan.toolName);
+    const tool = orderTools.find((t) => t.name === plan.toolName) as
+      | Tool<{ orderNumber: string }, unknown>
+      | undefined;
     if (!tool || !orderNumber) continue;
 
     const call = await executeToolCall(tool, { orderNumber }, context);
@@ -126,10 +124,7 @@ Provide a helpful response about the order.`;
   try {
     const result = await generateText({
       model: google(
-        process.env.GOOGLE_GENERATIVE_AI_MODEL || "gemini-2.0-flash-exp",
-        {
-          apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
-        },
+        process.env.GOOGLE_GENERATIVE_AI_MODEL || "gemini-2.5-flash",
       ),
       system: systemPrompt,
       prompt: userPrompt,
@@ -185,10 +180,7 @@ Provide a helpful response about billing.`;
   try {
     const result = await generateText({
       model: google(
-        process.env.GOOGLE_GENERATIVE_AI_MODEL || "gemini-2.0-flash-exp",
-        {
-          apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
-        },
+        process.env.GOOGLE_GENERATIVE_AI_MODEL || "gemini-2.5-flash",
       ),
       system: systemPrompt,
       prompt: userPrompt,
