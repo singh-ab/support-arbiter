@@ -20,25 +20,36 @@ export const chatService = {
   handleIncomingMessage: async (input: IncomingMessageInput) => {
     const startTime = Date.now();
 
-    // 1. Ensure user exists (demo mode: use provided userId or create default)
-    const userId = input.userId || "demo-user";
-    await userRepo.upsertMinimal({ id: userId, name: "Demo User" });
+    // to ensure user exists ( seeded demo user if present)
+    const demoEmail = "demo@acme.com";
+    const seededDemoUser = await userRepo.getByEmail(demoEmail);
 
-    // 2. Get or create conversation
+    let userId = input.userId?.trim();
+    if (!userId || userId === "demo-user") {
+      userId = seededDemoUser?.id ?? userId ?? "demo-user";
+    }
+
+    await userRepo.upsertMinimal({
+      id: userId,
+      name: "Demo User",
+      ...(userId === "demo-user" ? { email: demoEmail } : null),
+    });
+
+    // Get or create conversation
     let conversationId = input.conversationId;
     if (!conversationId) {
       const conv = await conversationRepo.create({ userId });
       conversationId = conv.id;
     }
 
-    // 3. Persist user message
+    // Persist user message
     const userMessage = await messageRepo.create({
       conversationId,
       role: "user",
       content: input.message,
     });
 
-    // 4. Load recent conversation history for context
+    // Load recent conversation history for context
     const recentMessages = await messageRepo.getRecentByConversation(
       conversationId,
       10,
@@ -55,12 +66,21 @@ export const chatService = {
       recentHistory: history,
     };
 
-    // 5. Run router agent
+    // Run router agent
     const routerStart = Date.now();
     const routerDecision = await runRouter(context);
     const routerTime = Date.now() - routerStart;
 
-    // 6. Persist router decision
+    console.info("[agent:router]", {
+      conversationId,
+      userId,
+      intent: routerDecision.intent,
+      confidence: routerDecision.confidence,
+      selectedAgent: routerDecision.selectedAgent,
+      toolPlan: routerDecision.toolPlan.map((tool) => tool.toolName),
+    });
+
+    // Persist router decision
     await agentRunRepo.create({
       conversationId,
       messageId: userMessage.id,
@@ -71,9 +91,14 @@ export const chatService = {
       timingsMs: { router: routerTime },
     });
 
-    // 7. Run selected sub-agent (tools-first)
+    // Run selected sub-agent (tools-first)
     const agentStart = Date.now();
     let agentResponse;
+    console.info("[agent:run]", {
+      conversationId,
+      userId,
+      agent: routerDecision.selectedAgent,
+    });
     switch (routerDecision.selectedAgent) {
       case "support":
         agentResponse = await runSupportAgent(context, routerDecision.toolPlan);
@@ -87,14 +112,22 @@ export const chatService = {
     }
     const agentTime = Date.now() - agentStart;
 
-    // 8. Persist assistant message
+    console.info("[agent:complete]", {
+      conversationId,
+      userId,
+      agent: routerDecision.selectedAgent,
+      toolCalls: agentResponse.toolCalls.length,
+      durationMs: agentTime,
+    });
+
+    // Persist assistant message
     const assistantMessage = await messageRepo.create({
       conversationId,
       role: "assistant",
       content: agentResponse.content,
     });
 
-    // 9. Persist sub-agent run with tool calls
+    // Persist sub-agent run with tool calls
     await agentRunRepo.create({
       conversationId,
       messageId: assistantMessage.id,
@@ -113,7 +146,7 @@ export const chatService = {
       timingsMs: { agent: agentTime },
     });
 
-    // 10. Touch conversation to update timestamp
+    // Touch conversation to update timestamp
     await conversationRepo.touch(conversationId);
 
     const totalTime = Date.now() - startTime;
