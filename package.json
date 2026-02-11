@@ -12,7 +12,7 @@
     "prisma:seed": "prisma db seed"
   },
   "dependencies": {
-    "@ai-sdk/deepseek": "^2.0.18",
+    "@ai-sdk/google": "^3.0.24",
     "@prisma/adapter-pg": "^7.3.0",
     "@prisma/client": "^7.3.0",
     "ai": "^6.0.79",

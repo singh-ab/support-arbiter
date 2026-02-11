@@ -1,5 +1,5 @@
 import { generateObject } from "ai";
-import { deepseek } from "@ai-sdk/deepseek";
+import { google } from "@ai-sdk/google";
 import { z } from "zod";
 
 import type { AgentContext, RouterDecision } from "@/server/agents/types";
@@ -49,10 +49,10 @@ Classify this request and suggest a tool plan.`;
 
   try {
     const result = await generateObject({
-      model: deepseek(
-        process.env.OPENAI_MODEL || process.env.DEEPSEEK_MODEL || "deepseek-chat",
+      model: google(
+        process.env.GOOGLE_GENERATIVE_AI_MODEL || "gemini-2.0-flash-exp",
         {
-          apiKey: process.env.DEEPSEEK_API_KEY || process.env.OPENAI_API_KEY,
+          apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
         },
       ),
       schema: routerDecisionSchema,

@@ -1,5 +1,5 @@
 import { generateText } from "ai";
-import { deepseek } from "@ai-sdk/deepseek";
+import { google } from "@ai-sdk/google";
 
 import type {
   AgentContext,
@@ -66,12 +66,10 @@ Provide a helpful response.`;
 
   try {
     const result = await generateText({
-      model: deepseek(
-        process.env.OPENAI_MODEL ||
-          process.env.DEEPSEEK_MODEL ||
-          "deepseek-chat",
+      model: google(
+        process.env.GOOGLE_GENERATIVE_AI_MODEL || "gemini-2.0-flash-exp",
         {
-          apiKey: process.env.DEEPSEEK_API_KEY || process.env.OPENAI_API_KEY,
+          apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
         },
       ),
       system: systemPrompt,
@@ -127,12 +125,10 @@ Provide a helpful response about the order.`;
 
   try {
     const result = await generateText({
-      model: deepseek(
-        process.env.OPENAI_MODEL ||
-          process.env.DEEPSEEK_MODEL ||
-          "deepseek-chat",
+      model: google(
+        process.env.GOOGLE_GENERATIVE_AI_MODEL || "gemini-2.0-flash-exp",
         {
-          apiKey: process.env.DEEPSEEK_API_KEY || process.env.OPENAI_API_KEY,
+          apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
         },
       ),
       system: systemPrompt,
@@ -188,12 +184,10 @@ Provide a helpful response about billing.`;
 
   try {
     const result = await generateText({
-      model: deepseek(
-        process.env.OPENAI_MODEL ||
-          process.env.DEEPSEEK_MODEL ||
-          "deepseek-chat",
+      model: google(
+        process.env.GOOGLE_GENERATIVE_AI_MODEL || "gemini-2.0-flash-exp",
         {
-          apiKey: process.env.DEEPSEEK_API_KEY || process.env.OPENAI_API_KEY,
+          apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
         },
       ),
       system: systemPrompt,
