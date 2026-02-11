@@ -1,4 +1,5 @@
 import type { Context, Next } from "hono";
+import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { HTTPException } from "hono/http-exception";
 
 import { AppError, isAppError, toPublicError } from "@/server/errors/appError";
@@ -31,7 +32,7 @@ export function errorMiddleware() {
             requestId,
           },
         };
-        return c.json(body, err.status);
+        return c.json(body, err.status as ContentfulStatusCode);
       }
 
       if (isAppError(err)) {
@@ -43,7 +44,7 @@ export function errorMiddleware() {
             requestId,
           },
         };
-        return c.json(body, publicErr.status);
+        return c.json(body, publicErr.status as ContentfulStatusCode);
       }
 
       const fallback = new AppError("INTERNAL_ERROR", "Unexpected error", 500);
@@ -54,7 +55,7 @@ export function errorMiddleware() {
           requestId,
         },
       };
-      return c.json(body, 500);
+      return c.json(body, 500 as ContentfulStatusCode);
     }
   };
 }
