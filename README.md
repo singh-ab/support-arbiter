@@ -95,4 +95,9 @@ Use these in the UI after seeding.
 4. `Do I have a refund for INV-10001?`
 5. `How do I reset my password?`
 
-If you see quota errors from Gemini, verify `GOOGLE_GENERATIVE_AI_API_KEY` and your Google project quotas.
+If you see quota errors from Gemini, verify `GOOGLE_GENERATIVE_AI_API_KEY` or change your key. 
+
+### Notes
+
+- If you see an 'An error was encountered' or similar on the hosted app, please let me know chances are the api key is facing quota issues.
+- The hosted version has rate limiting of 10 req/min so try to stay under that limit. If you need more for testing, then I can tweak the limit, just let me know.
