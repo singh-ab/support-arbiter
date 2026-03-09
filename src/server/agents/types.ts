@@ -2,6 +2,16 @@ import type { z } from "zod";
 
 export type AgentType = "router" | "support" | "order" | "billing";
 
+export const TOOL_NAMES = [
+  "queryConversationHistory",
+  "fetchOrderDetails",
+  "checkDeliveryStatus",
+  "getInvoiceDetails",
+  "checkRefundStatus",
+] as const;
+
+export type ToolName = (typeof TOOL_NAMES)[number];
+
 export type ToolCall = {
   toolName: string;
   input: Record<string, unknown>;
@@ -20,7 +30,7 @@ export type RouterDecision = {
   intent: string;
   confidence: number;
   selectedAgent: "support" | "order" | "billing";
-  toolPlan: Array<{ toolName: string; reasoning: string }>;
+  toolPlan: Array<{ toolName: ToolName; reasoning: string }>;
 };
 
 export type AgentResponse = {
