@@ -6,6 +6,7 @@ import type {
   AgentResponse,
   Tool,
   ToolCall,
+  ToolName,
 } from "@/server/agents/types";
 import { billingTools } from "@/server/agents/tools/billingTools";
 import { orderTools } from "@/server/agents/tools/orderTools";
@@ -35,14 +36,21 @@ async function executeToolCall<TInput, TOutput>(
 
 export async function runSupportAgent(
   context: AgentContext,
-  toolPlan: Array<{ toolName: string; reasoning: string }>,
+  toolPlan: Array<{ toolName: ToolName; reasoning: string }>,
 ): Promise<AgentResponse> {
   const toolCalls: ToolCall[] = [];
 
   // Execute tools first
   for (const plan of toolPlan) {
     const tool = supportTools.find((t) => t.name === plan.toolName);
-    if (!tool) continue;
+    if (!tool) {
+      toolCalls.push({
+        toolName: plan.toolName,
+        input: {},
+        error: "Tool not available for support agent",
+      });
+      continue;
+    }
 
     const call = await executeToolCall(tool, {}, context);
     toolCalls.push(call);
@@ -88,7 +96,7 @@ Provide a helpful response.`;
 
 export async function runOrderAgent(
   context: AgentContext,
-  toolPlan: Array<{ toolName: string; reasoning: string }>,
+  toolPlan: Array<{ toolName: ToolName; reasoning: string }>,
 ): Promise<AgentResponse> {
   const toolCalls: ToolCall[] = [];
 
@@ -101,7 +109,15 @@ export async function runOrderAgent(
     const tool = orderTools.find((t) => t.name === plan.toolName) as
       | Tool<{ orderNumber: string }, unknown>
       | undefined;
-    if (!tool || !orderNumber) continue;
+    if (!tool) {
+      toolCalls.push({
+        toolName: plan.toolName,
+        input: {},
+        error: "Tool not available for order agent",
+      });
+      continue;
+    }
+    if (!orderNumber) continue;
 
     const call = await executeToolCall(tool, { orderNumber }, context);
     toolCalls.push(call);
@@ -146,7 +162,7 @@ Provide a helpful response about the order.`;
 
 export async function runBillingAgent(
   context: AgentContext,
-  toolPlan: Array<{ toolName: string; reasoning: string }>,
+  toolPlan: Array<{ toolName: ToolName; reasoning: string }>,
 ): Promise<AgentResponse> {
   const toolCalls: ToolCall[] = [];
 
@@ -157,7 +173,15 @@ export async function runBillingAgent(
   // Execute tools first
   for (const plan of toolPlan) {
     const tool = billingTools.find((t) => t.name === plan.toolName);
-    if (!tool || !invoiceNumber) continue;
+    if (!tool) {
+      toolCalls.push({
+        toolName: plan.toolName,
+        input: {},
+        error: "Tool not available for billing agent",
+      });
+      continue;
+    }
+    if (!invoiceNumber) continue;
 
     const call = await executeToolCall(tool, { invoiceNumber }, context);
     toolCalls.push(call);

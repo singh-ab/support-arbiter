@@ -3,6 +3,7 @@ import { google } from "@ai-sdk/google";
 import { z } from "zod";
 
 import type { AgentContext, RouterDecision } from "@/server/agents/types";
+import { TOOL_NAMES } from "@/server/agents/types";
 
 const routerDecisionSchema = z.object({
   intent: z.string().describe("The user intent classification"),
@@ -17,7 +18,7 @@ const routerDecisionSchema = z.object({
   toolPlan: z
     .array(
       z.object({
-        toolName: z.string(),
+        toolName: z.enum(TOOL_NAMES),
         reasoning: z.string(),
       }),
     )
