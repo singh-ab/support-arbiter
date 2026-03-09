@@ -109,6 +109,14 @@ export const chatService = {
       case "billing":
         agentResponse = await runBillingAgent(context, routerDecision.toolPlan);
         break;
+      default:
+        console.warn("[agent:run] Unknown agent, defaulting to support", {
+          conversationId,
+          userId,
+          agent: routerDecision.selectedAgent,
+        });
+        agentResponse = await runSupportAgent(context, routerDecision.toolPlan);
+        break;
     }
     const agentTime = Date.now() - agentStart;
 
