@@ -16,6 +16,123 @@ type Conversation = {
   updatedAt: string;
 };
 
+const SUGGESTIONS = [
+  "Where is my order?",
+  "Can I get my invoice?",
+  "How do I reset my password?",
+];
+
+function FavIcon({ size = 18 }: { size?: number }) {
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src="/favicon.ico"
+      alt=""
+      width={size}
+      height={size}
+      style={{ display: "block", borderRadius: 3 }}
+    />
+  );
+}
+
+function IconPlus() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+    >
+      <line x1="12" y1="5" x2="12" y2="19" />
+      <line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+  );
+}
+
+function IconSend() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <line x1="22" y1="2" x2="11" y2="13" />
+      <polygon points="22 2 15 22 11 13 2 9 22 2" />
+    </svg>
+  );
+}
+
+function IconTrash() {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <polyline points="3 6 5 6 21 6" />
+      <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />
+      <path d="M10 11v6M14 11v6M9 6V4h6v2" />
+    </svg>
+  );
+}
+
+function ThinkingDots() {
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 4,
+        padding: "2px 0",
+      }}
+    >
+      <span
+        className="dot-1"
+        style={{
+          display: "inline-block",
+          width: 7,
+          height: 7,
+          borderRadius: "50%",
+          background: "var(--text-dim)",
+        }}
+      />
+      <span
+        className="dot-2"
+        style={{
+          display: "inline-block",
+          width: 7,
+          height: 7,
+          borderRadius: "50%",
+          background: "var(--text-dim)",
+        }}
+      />
+      <span
+        className="dot-3"
+        style={{
+          display: "inline-block",
+          width: 7,
+          height: 7,
+          borderRadius: "50%",
+          background: "var(--text-dim)",
+        }}
+      />
+    </span>
+  );
+}
+
 export default function ChatPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversationId, setCurrentConversationId] = useState<
@@ -26,6 +143,7 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(false);
   const [userId] = useState("demo-user");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const loadConversations = useCallback(async () => {
     try {
@@ -52,25 +170,22 @@ export default function ChatPage() {
   useEffect(() => {
     loadConversations();
   }, [loadConversations]);
-
   useEffect(() => {
-    if (currentConversationId) {
-      loadConversation(currentConversationId);
-    }
+    if (currentConversationId) loadConversation(currentConversationId);
   }, [currentConversationId, loadConversation]);
-
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   const sendMessage = async () => {
     if (!input.trim() || loading) return;
-
     const userMessage = input.trim();
     setInput("");
+    if (inputRef.current) {
+      inputRef.current.style.height = "auto";
+    }
     setLoading(true);
 
-    // Optimistic UI update
     setMessages((prev) => [
       ...prev,
       { id: "temp-user", role: "user", content: userMessage },
@@ -93,7 +208,6 @@ export default function ChatPage() {
         setCurrentConversationId(data.conversationId);
       }
 
-      // Replace optimistic message and add assistant response
       setMessages((prev) => {
         const withoutTemp = prev.filter((m) => m.id !== "temp-user");
         return [
@@ -125,127 +239,514 @@ export default function ChatPage() {
     if (!confirm("Delete this conversation?")) return;
     try {
       await fetch(`/api/chat/conversations/${id}`, { method: "DELETE" });
-      if (currentConversationId === id) {
-        startNewConversation();
-      }
+      if (currentConversationId === id) startNewConversation();
       await loadConversations();
     } catch (error) {
       console.error("Failed to delete conversation:", error);
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  };
+
   return (
-    <div className="flex h-screen bg-zinc-950">
-      {/* Sidebar */}
-      <div className="w-64 bg-zinc-900 border-r border-zinc-800 flex flex-col">
-        <div className="p-4 border-b border-zinc-800">
-          <button
-            onClick={startNewConversation}
-            className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white text-sm font-medium"
+    <>
+      <style>{`
+        .conv-item:hover { background: var(--surface-2) !important; }
+        .conv-item:hover .conv-delete { opacity: 1 !important; }
+        .conv-delete:hover { color: #f87171 !important; }
+        .btn-new:hover { background: var(--accent-hover) !important; }
+        .suggestion:hover { border-color: var(--accent) !important; color: var(--text) !important; }
+        .send-btn:not(:disabled):hover { background: var(--accent-hover) !important; }
+        textarea::placeholder { color: var(--text-muted); }
+        textarea:focus { outline: none; border-color: var(--accent) !important; }
+      `}</style>
+
+      <div
+        style={{
+          display: "flex",
+          height: "100vh",
+          background: "var(--bg)",
+          fontFamily: "var(--font)",
+        }}
+      >
+        {/* ── Sidebar ── */}
+        <aside
+          style={{
+            width: 260,
+            flexShrink: 0,
+            background: "var(--surface)",
+            borderRight: "1px solid var(--border)",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          {/* Brand */}
+          <div
+            style={{
+              padding: "18px 16px 14px",
+              borderBottom: "1px solid var(--border-subtle)",
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+            }}
           >
-            + New Chat
-          </button>
-        </div>
-        <div className="flex-1 overflow-y-auto p-2">
-          {conversations.map((conv) => (
             <div
-              key={conv.id}
-              className={`p-3 mb-1 rounded-lg cursor-pointer hover:bg-zinc-800 group ${
-                currentConversationId === conv.id ? "bg-zinc-800" : ""
-              }`}
-              onClick={() => setCurrentConversationId(conv.id)}
+              style={{
+                width: 34,
+                height: 34,
+                borderRadius: 10,
+                flexShrink: 0,
+                background: "#e6f7f1",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                overflow: "hidden",
+              }}
             >
-              <div className="flex justify-between items-start">
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-zinc-200 truncate">
+              <FavIcon size={34} />
+            </div>
+            <div>
+              <div
+                style={{
+                  fontWeight: 600,
+                  fontSize: 14,
+                  color: "var(--text)",
+                  lineHeight: 1.2,
+                }}
+              >
+                Support Arbiter
+              </div>
+              <div
+                style={{
+                  fontSize: 11,
+                  color: "var(--text-muted)",
+                  marginTop: 1,
+                }}
+              >
+                AI Customer Support
+              </div>
+            </div>
+          </div>
+
+          {/* New conversation */}
+          <div style={{ padding: "12px 12px 6px" }}>
+            <button
+              className="btn-new"
+              onClick={startNewConversation}
+              style={{
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 6,
+                padding: "9px 14px",
+                background: "#10b981",
+                border: "none",
+                borderRadius: 8,
+                color: "#fff",
+                fontSize: 13,
+                fontWeight: 500,
+                cursor: "pointer",
+                fontFamily: "var(--font)",
+                transition: "background 0.15s",
+              }}
+            >
+              <IconPlus /> New conversation
+            </button>
+          </div>
+
+          {/* Conversations */}
+          <div style={{ flex: 1, overflowY: "auto", padding: "4px 8px" }}>
+            {conversations.length === 0 && (
+              <div
+                style={{
+                  padding: "20px 8px",
+                  fontSize: 12,
+                  color: "var(--text-muted)",
+                  textAlign: "center",
+                }}
+              >
+                No conversations yet
+              </div>
+            )}
+            {conversations.map((conv) => (
+              <div
+                key={conv.id}
+                className="conv-item"
+                onClick={() => setCurrentConversationId(conv.id)}
+                style={{
+                  padding: "9px 10px",
+                  marginBottom: 2,
+                  borderRadius: 8,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 6,
+                  background:
+                    currentConversationId === conv.id
+                      ? "var(--surface-2)"
+                      : "transparent",
+                  border: `1px solid ${currentConversationId === conv.id ? "var(--border)" : "transparent"}`,
+                  transition: "background 0.1s",
+                }}
+              >
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 500,
+                      color: "var(--text)",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
                     {conv.title || "New conversation"}
                   </div>
-                  <div className="text-xs text-zinc-500 truncate">
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: "var(--text-muted)",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                      marginTop: 2,
+                    }}
+                  >
                     {conv.lastMessagePreview || "No messages"}
                   </div>
                 </div>
                 <button
+                  className="conv-delete"
                   onClick={(e) => {
                     e.stopPropagation();
                     deleteConversation(conv.id);
                   }}
-                  className="ml-2 text-zinc-600 hover:text-red-400 opacity-0 group-hover:opacity-100"
+                  style={{
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: 4,
+                    borderRadius: 4,
+                    color: "var(--text-muted)",
+                    display: "flex",
+                    alignItems: "center",
+                    flexShrink: 0,
+                    opacity: 0,
+                    transition: "opacity 0.15s, color 0.15s",
+                  }}
                 >
-                  ×
+                  <IconTrash />
                 </button>
               </div>
-            </div>
-          ))}
-        </div>
-      </div>
+            ))}
+          </div>
 
-      {/* Main chat area */}
-      <div className="flex-1 flex flex-col">
-        <div className="flex-1 overflow-y-auto p-6">
-          {messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-zinc-500">
-              <h2 className="text-2xl font-bold mb-2">AI Customer Support</h2>
-              <p className="text-sm">
-                Start a conversation to get help with orders, billing, or
-                support.
-              </p>
+          {/* Footer */}
+          <div
+            style={{
+              padding: "12px 14px",
+              borderTop: "1px solid var(--border-subtle)",
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+            }}
+          >
+            <div
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: "50%",
+                background: "var(--surface-2)",
+                border: "1px solid var(--border)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 11,
+                fontWeight: 600,
+                color: "var(--text-dim)",
+              }}
+            >
+              D
             </div>
-          ) : (
-            <div className="max-w-3xl mx-auto space-y-4">
-              {messages.map((msg) => (
+            <span style={{ fontSize: 12, color: "var(--text-dim)" }}>
+              Demo User
+            </span>
+          </div>
+        </aside>
+
+        {/* ── Main ── */}
+        <main
+          style={{
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+          }}
+        >
+          {/* Messages */}
+          <div style={{ flex: 1, overflowY: "auto", padding: "36px 28px" }}>
+            {messages.length === 0 ? (
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  height: "100%",
+                  gap: 24,
+                }}
+              >
                 <div
-                  key={msg.id}
-                  className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                  style={{
+                    width: 60,
+                    height: 60,
+                    borderRadius: 18,
+                    background: "#e6f7f1",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    overflow: "hidden",
+                  }}
                 >
+                  <FavIcon size={60} />
+                </div>
+                <div style={{ textAlign: "center" }}>
                   <div
-                    className={`max-w-[80%] px-4 py-3 rounded-lg ${
-                      msg.role === "user"
-                        ? "bg-blue-600 text-white"
-                        : "bg-zinc-800 text-zinc-100"
-                    }`}
+                    style={{
+                      fontSize: 22,
+                      fontWeight: 600,
+                      color: "var(--text)",
+                      marginBottom: 8,
+                    }}
                   >
-                    <div className="text-sm whitespace-pre-wrap">
+                    How can I help you?
+                  </div>
+                  <div style={{ fontSize: 14, color: "var(--text-muted)" }}>
+                    Ask about your orders, invoices, or get support.
+                  </div>
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 8,
+                    flexWrap: "wrap",
+                    justifyContent: "center",
+                  }}
+                >
+                  {SUGGESTIONS.map((s) => (
+                    <button
+                      key={s}
+                      className="suggestion"
+                      onClick={() => {
+                        setInput(s);
+                        inputRef.current?.focus();
+                      }}
+                      style={{
+                        padding: "8px 16px",
+                        borderRadius: 20,
+                        border: "1px solid var(--border)",
+                        background: "var(--surface)",
+                        color: "var(--text-dim)",
+                        fontSize: 12.5,
+                        cursor: "pointer",
+                        fontFamily: "var(--font)",
+                        transition: "border-color 0.15s, color 0.15s",
+                      }}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div
+                style={{
+                  maxWidth: 720,
+                  margin: "0 auto",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 18,
+                }}
+              >
+                {messages.map((msg) => (
+                  <div
+                    key={msg.id}
+                    style={{
+                      display: "flex",
+                      justifyContent:
+                        msg.role === "user" ? "flex-end" : "flex-start",
+                      alignItems: "flex-end",
+                      gap: 10,
+                    }}
+                  >
+                    {msg.role === "assistant" && (
+                      <div
+                        style={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: 8,
+                          flexShrink: 0,
+                          marginBottom: 2,
+                          background: "#e6f7f1",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          overflow: "hidden",
+                        }}
+                      >
+                        <FavIcon size={28} />
+                      </div>
+                    )}
+                    <div
+                      style={{
+                        maxWidth: "76%",
+                        padding: "12px 16px",
+                        borderRadius:
+                          msg.role === "user"
+                            ? "18px 18px 4px 18px"
+                            : "18px 18px 18px 4px",
+                        background:
+                          msg.role === "user"
+                            ? "linear-gradient(135deg, #059669, #0891b2)"
+                            : "var(--surface-2)",
+                        border:
+                          msg.role === "assistant"
+                            ? "1px solid var(--border)"
+                            : "none",
+                        color: "var(--text)",
+                        fontSize: 14,
+                        lineHeight: 1.65,
+                        whiteSpace: "pre-wrap",
+                      }}
+                    >
                       {msg.content}
                     </div>
                   </div>
-                </div>
-              ))}
-              {loading && (
-                <div className="flex justify-start">
-                  <div className="max-w-[80%] px-4 py-3 rounded-lg bg-zinc-800 text-zinc-400">
-                    <div className="text-sm italic">Thinking...</div>
+                ))}
+                {loading && (
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "flex-start",
+                      alignItems: "flex-end",
+                      gap: 10,
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: 8,
+                        flexShrink: 0,
+                        background: "#e6f7f1",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        overflow: "hidden",
+                      }}
+                    >
+                      <FavIcon size={28} />
+                    </div>
+                    <div
+                      style={{
+                        padding: "14px 18px",
+                        borderRadius: "18px 18px 18px 4px",
+                        background: "var(--surface-2)",
+                        border: "1px solid var(--border)",
+                      }}
+                    >
+                      <ThinkingDots />
+                    </div>
                   </div>
-                </div>
-              )}
-              <div ref={messagesEndRef} />
-            </div>
-          )}
-        </div>
-
-        {/* Input area */}
-        <div className="border-t border-zinc-800 p-4">
-          <div className="max-w-3xl mx-auto flex gap-2">
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) =>
-                e.key === "Enter" && !e.shiftKey && sendMessage()
-              }
-              placeholder="Type your message..."
-              disabled={loading}
-              className="flex-1 px-4 py-3 bg-zinc-900 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-blue-600 disabled:opacity-50"
-            />
-            <button
-              onClick={sendMessage}
-              disabled={loading || !input.trim()}
-              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-700 disabled:cursor-not-allowed rounded-lg text-white font-medium"
-            >
-              {loading ? "Sending..." : "Send"}
-            </button>
+                )}
+                <div ref={messagesEndRef} />
+              </div>
+            )}
           </div>
-        </div>
+
+          {/* Input bar */}
+          <div
+            style={{
+              borderTop: "1px solid var(--border)",
+              padding: "16px 28px 20px",
+              background: "var(--surface)",
+            }}
+          >
+            <div
+              style={{
+                maxWidth: 720,
+                margin: "0 auto",
+                display: "flex",
+                gap: 10,
+                alignItems: "flex-end",
+              }}
+            >
+              <textarea
+                ref={inputRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                onInput={(e) => {
+                  const el = e.currentTarget;
+                  el.style.height = "auto";
+                  el.style.height = Math.min(el.scrollHeight, 120) + "px";
+                }}
+                placeholder="Message Support Arbiter…"
+                disabled={loading}
+                rows={1}
+                style={{
+                  flex: 1,
+                  padding: "12px 16px",
+                  background: "var(--surface-2)",
+                  border: "1px solid var(--border)",
+                  borderRadius: 12,
+                  color: "var(--text)",
+                  fontSize: 14,
+                  fontFamily: "var(--font)",
+                  resize: "none",
+                  lineHeight: 1.5,
+                  maxHeight: 120,
+                  overflowY: "auto",
+                  transition: "border-color 0.15s",
+                  opacity: loading ? 0.5 : 1,
+                }}
+              />
+              <button
+                className="send-btn"
+                onClick={sendMessage}
+                disabled={loading || !input.trim()}
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 12,
+                  border: "none",
+                  flexShrink: 0,
+                  background:
+                    loading || !input.trim()
+                      ? "var(--surface-2)"
+                      : "var(--accent)",
+                  color:
+                    loading || !input.trim() ? "var(--text-muted)" : "#fff",
+                  cursor: loading || !input.trim() ? "not-allowed" : "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  transition: "background 0.15s",
+                }}
+              >
+                <IconSend />
+              </button>
+            </div>
+          </div>
+        </main>
       </div>
-    </div>
+    </>
   );
 }
